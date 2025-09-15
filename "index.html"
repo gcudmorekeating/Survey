@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ranking Survey</title>
+
+  <!-- Page styling: controls fonts, spacing, colors -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f6f6;
+      padding: 20px;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.1);
+    }
+    h1 { margin-top: 0; }
+    fieldset {
+      border: 1px solid #ddd;
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    legend { font-weight: bold; }
+    label { display: block; margin: 8px 0; }
+    select, button {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .hidden { display: none; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ranking Survey</h1>
+
+    <!-- The survey form -->
+    <form id="survey">
+
+      <!-- Step 1: Ranking question -->
+      <fieldset>
+        <legend>Rank your Top 3 Options (A–E)</legend>
+        <label>1st Choice:
+          <select name="rank1" id="rank1" required>
+            <option value="">Select…</option>
+            <option value="A">Option A</option>
+            <option value="B">Option B</option>
+            <option value="C">Option C</option>
+            <option value="D">Option D</option>
+            <option value="E">Option E</option>
+          </select>
+        </label>
+        <label>2nd Choice:
+          <select name="rank2" id="rank2" required></select>
+        </label>
+        <label>3rd Choice:
+          <select name="rank3" id="rank3" required></select>
+        </label>
+      </fieldset>
+
+      <!-- Step 2: “Why” questions (hidden until selected) -->
+      <fieldset id="why_A" class="hidden">
+        <legend>Why did you pick A?</legend>
+        <label><input type="radio" name="why_A" value="Reason 1"> Reason 1</label>
+        <label><input type="radio" name="why_A" value="Reason 2"> Reason 2</label>
+      </fieldset>
+
+      <fieldset id="why_B" class="hidden">
+        <legend>Why did you pick B?</legend>
+        <label><input type="radio" name="why_B" value="Reason 1"> Reason 1</label>
+        <label><input type="radio" name="why_B" value="Reason 2"> Reason 2</label>
+      </fieldset>
+
+      <!-- Repeat for C, D, E as needed -->
+
+      <!-- Hidden anti-bot honeypot field -->
+      <input type="text" name="honeypot" class="hidden">
+
+      <!-- Submit button and status message -->
+      <button type="submit">Submit</button>
+      <p id="status"></p>
+    </form>
+  </div>
+
+  <!-- The JavaScript: controls form logic and sending data -->
+  <script>
+    // Replace this with the Web App URL from Step 2
+    const ENDPOINT = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+
+    const rank1 = document.getElementById('rank1');
+    const rank2 = document.getElementById('rank2');
+    const rank3 = document.getElementById('rank3');
+    const options = ['A','B','C','D','E'];
+
+    // Keep rank choices unique
+    function updateRankings() {
+      const exclude = [rank1.value];
+      rank2.innerHTML = '<option value="">Select…</option>' +
+        options.filter(o => !exclude.includes(o))
+               .map(o => `<option value="${o}">Option ${o}</option>`).join('');
+      rank3.innerHTML = '<option value="">Select…</option>' +
+        options.filter(o => ![rank1.value, rank2.value].includes(o))
+               .map(o => `<option value="${o}">Option ${o}</option>`).join('');
+    }
+    rank1.addEventListener('change', updateRankings);
+    rank2.addEventListener('change', updateRankings);
+
+    // Show “Why” fields only for chosen Top 3
+    function showWhyFields() {
+      document.querySelectorAll('fieldset[id^="why_"]').forEach(fs => fs.classList.add('hidden'));
+      [rank1.value, rank2.value, rank3.value].forEach(val => {
+        if (val) document.getElementById('why_' + val).classList.remove('hidden');
+      });
+    }
+    rank1.addEventListener('change', showWhyFields);
+    rank2.addEventListener('change', showWhyFields);
+    rank3.addEventListener('change', showWhyFields);
+
+    // Submit handler
+    document.getElementById('survey').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      fd.append('user_agent', navigator.userAgent);
+
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        body: new URLSearchParams(fd)
+      });
+      const json = await res.json();
+      const status = document.getElementById('status');
+      if (json.ok) {
+        status.textContent = 'Thanks! Your response has been saved.';
+        status.className = 'success';
+      } else {
+        status.textContent = 'Error: ' + (json.error || 'Unknown');
+        status.className = 'error';
+      }
+    });
+  </script>
+</body>
+</html>
